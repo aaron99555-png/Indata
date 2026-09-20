@@ -5,7 +5,7 @@
 <head>
 <meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
 <title>萊恩起漲手札</title>
-<meta content="226" name="app-version"/>
+<meta content="227" name="app-version"/>
 <script id="admin-mode-bootstrap">
 try{
     if(window.localStorage.getItem('ryan_admin_session_v1')==='1'){
@@ -8551,6 +8551,46 @@ document.addEventListener('DOMContentLoaded',()=>{
  $('chip-web-update')?.addEventListener('click',update);
  $('chip-web-clear-token')?.addEventListener('click',()=>{localStorage.removeItem(tokenKey);if(t)t.value='';$('chip-web-status').textContent='Token 已從本機瀏覽器清除。'});
 });
+})();
+</script>
+
+
+<script id="global-last-trading-day-v227">
+(()=>{
+  // v227：全站日期/區間日期週六、週日不往後跑，停留於最近週五。
+  // 國定休市日仍由既有「自訂休市日」/實際資料日期機制處理。
+  const pad=n=>String(n).padStart(2,'0');
+  const isoLocal=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  const lastWeekday=value=>{
+    if(!value)return value;
+    const d=new Date(`${String(value).slice(0,10)}T12:00:00`);
+    if(!Number.isFinite(d.getTime()))return value;
+    if(d.getDay()===6)d.setDate(d.getDate()-1);
+    else if(d.getDay()===0)d.setDate(d.getDate()-2);
+    return isoLocal(d);
+  };
+  const normalizeDateInput=el=>{
+    if(!el || el.type!=='date' || !el.value)return;
+    const fixed=lastWeekday(el.value);
+    if(fixed!==el.value){
+      el.value=fixed;
+      el.dispatchEvent(new Event('change',{bubbles:true}));
+    }
+  };
+  const normalizeAll=()=>{
+    document.querySelectorAll('input[type="date"]').forEach(normalizeDateInput);
+  };
+  document.addEventListener('DOMContentLoaded',()=>{
+    normalizeAll();
+    // 任何區間日期被選到六/日，立即退回最近週五。
+    document.addEventListener('change',e=>{
+      if(e.target?.matches?.('input[type="date"]')) normalizeDateInput(e.target);
+    },true);
+    // 部分模組會在切換頁面/篩選後重新指定日期，因此再做輕量同步。
+    const observer=new MutationObserver(()=>normalizeAll());
+    observer.observe(document.body,{childList:true,subtree:true});
+  });
+  window.ryanLastTradingWeekday=lastWeekday;
 })();
 </script>
 
