@@ -5,7 +5,7 @@
 <head>
 <meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
 <title>萊恩起漲手札</title>
-<meta content="225" name="app-version"/>
+<meta content="226" name="app-version"/>
 <script id="admin-mode-bootstrap">
 try{
     if(window.localStorage.getItem('ryan_admin_session_v1')==='1'){
@@ -2248,7 +2248,7 @@ nav, .top-nav, .desktop-nav, .module-nav{
           <h2 class="font-black text-cyan-700 dark:text-cyan-300 text-lg sm:text-xl"><i class="fa-solid fa-temperature-three-quarters mr-2"></i>籌碼溫度雷達</h2>
           <p class="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1">自動分析 1／5／10／20 日籌碼集中度，辨識強勢集中、籌碼加溫與潛伏吸籌。</p>
         </div>
-        <div class="text-[11px] font-bold text-gray-500 dark:text-gray-400"><i class="fa-solid fa-clock mr-1"></i>全台股上市＋上櫃｜手動一鍵掃描</div>
+        <div class="text-[11px] font-bold text-gray-500 dark:text-gray-400"><i class="fa-solid fa-clock mr-1"></i>全台股上市＋上櫃｜週六、週日停留最後開盤日</div>
       </div>
     </div>
     <div class="p-3 sm:p-4 bg-slate-950 text-slate-100" style="min-height:calc(100vh - 225px)">
@@ -8457,7 +8457,18 @@ const fmt=n=>Number.isFinite(Number(n))?Number(n).toFixed(1)+'%':'—';
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const ymd=d=>d.toISOString().slice(0,10);
-function startDate(days=55){const d=new Date();d.setDate(d.getDate()-days);return ymd(d)}
+function lastWeekdayDate(base=new Date()){
+ const d=new Date(base);
+ const day=d.getDay();
+ if(day===6)d.setDate(d.getDate()-1);
+ else if(day===0)d.setDate(d.getDate()-2);
+ return d;
+}
+function startDate(days=55){
+ const d=lastWeekdayDate();
+ d.setDate(d.getDate()-days);
+ return ymd(d);
+}
 async function getJSON(url){
  const r=await fetch(url,{headers:{Accept:'application/json'}});
  if(!r.ok)throw new Error('HTTP '+r.status);
@@ -8529,7 +8540,8 @@ async function update(){
    if((i+1)%20===0){render(out);localStorage.setItem(cacheKey,JSON.stringify({time:new Date().toISOString(),market,rows:out}));await sleep(300)}
   }
   render(out);localStorage.setItem(cacheKey,JSON.stringify({time:new Date().toISOString(),market,rows:out}));
-  status.textContent=`全市場更新完成｜股票清單 ${stocks.length} 檔｜成功分析 ${out.length}｜無資料/失敗 ${errors}`;
+  const latestTradingDate=out.map(x=>x.date).filter(Boolean).sort().at(-1)||'—';
+  status.textContent=`全市場更新完成｜資料截止 ${latestTradingDate}｜股票清單 ${stocks.length} 檔｜成功分析 ${out.length}｜無資料/失敗 ${errors}`;
  }catch(e){status.textContent='更新失敗：'+e.message}
  finally{btn.disabled=false;btn.innerHTML='<i class="fa-solid fa-radar mr-1"></i>更新全市場'}
 }
